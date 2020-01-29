@@ -35,50 +35,80 @@ class App extends Component {
       imageUrl: '',
       box: {},
       route: 'signin',
-      isSignedin: false
+      isSignedin: false,
+      userProfile: {}
     }
   }
 
-onInputChange = (event) => {
-  this.setState({input: event.target.value});
-}
-
-calculateFaceLocation = (data) => {
-  const clarifaiFaceRegion = data.outputs[0].data.regions[0].region_info.bounding_box;
-  const image = document.getElementById('inputimage');
-  const width = Number(image.width);
-  const height = Number(image.height);
-  return {
-    leftCol: clarifaiFaceRegion.left_col * width,
-    topRow: clarifaiFaceRegion.top_row * height,
-    rightCol: width - (clarifaiFaceRegion.right_col * width),
-    bottomRow: height - (clarifaiFaceRegion.bottom_row * height)
-  }
-}
-
-displayFaceBox = (box) => {
-  this.setState({box: box});
-}
-
-onButtonSubmit = () => {
-  this.setState({imageUrl: this.state.input})
-  app.models.predict(Clarifai.FACE_DETECT_MODEL, this.state.input)
-  .then(response => this.displayFaceBox(this.calculateFaceLocation(response)))
-  .catch(err => console.log(err))
-}
-
-onRouteChange = (route) => {
-  if(route === 'signout')
-  {
-    this.setState({isSignedin: false});
-  }
-  else if (route === 'home')
-  {
-    this.setState({isSignedin: true});
+  componentDidMount() {
+    fetch('http://localhost:3001/')
+     .then(response => response.json())
+     .then(console.log)
   }
 
-  this.setState({route: route})
-}
+  onLoadProfile = (user) => {
+    this.setState({userProfile: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      entries: user.entries,
+      date_joined: user.date_joined
+    }})
+  }
+
+  onInputChange = (event) => {
+    this.setState({input: event.target.value});
+  }
+
+  calculateFaceLocation = (data) => {
+    const clarifaiFaceRegion = data.outputs[0].data.regions[0].region_info.bounding_box;
+    const image = document.getElementById('inputimage');
+    const width = Number(image.width);
+    const height = Number(image.height);
+    return {
+      leftCol: clarifaiFaceRegion.left_col * width,
+      topRow: clarifaiFaceRegion.top_row * height,
+      rightCol: width - (clarifaiFaceRegion.right_col * width),
+      bottomRow: height - (clarifaiFaceRegion.bottom_row * height)
+    }
+  }
+
+  displayFaceBox = (box) => {
+    this.setState({box: box});
+  }
+
+  onButtonSubmit = () => {
+    this.setState({imageUrl: this.state.input})
+    app.models.predict(Clarifai.FACE_DETECT_MODEL, this.state.input)
+    .then(response => {
+      if(response)
+      {
+        fetch('http://localhost:3001/image', {
+        method: 'put',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: this.state.userProfile.id})
+      })
+       .then(response => response.json())
+      //  .then(console.log)
+       .then(data => this.setState(Object.assign(this.state.userProfile, {entries: data})));
+      }
+      this.displayFaceBox(this.calculateFaceLocation(response));
+    })
+    .catch(err => console.log(err))
+  }
+
+  onRouteChange = (route) => {
+    if(route === 'signout')
+    {
+      this.setState({isSignedin: false});
+    }
+    else if (route === 'home')
+    {
+      this.setState({isSignedin: true});
+    }
+
+    this.setState({route: route})
+  }
 
   render() {
     const { isSignedin, route, imageUrl, box } = this.state;
@@ -92,7 +122,7 @@ onRouteChange = (route) => {
           route === 'home' ?
           <div>
             <Logo />
-            <Rank />
+            <Rank user={this.state.userProfile}/>
             <ImageLinkForm onInputChange={this.onInputChange} onButtonSubmit={this.onButtonSubmit}/>
             <FaceRecognition box={box} imageUrl={imageUrl} />
           </div>
@@ -100,10 +130,10 @@ onRouteChange = (route) => {
           (
             route === 'signin' ?
 
-            <Signin onRouteChange={this.onRouteChange}/>
+            <Signin onLoadProfile={this.onLoadProfile} onRouteChange={this.onRouteChange}/>
             :
 
-            <Register onRouteChange={this.onRouteChange}/>
+            <Register onLoadProfile={this.onLoadProfile} onRouteChange={this.onRouteChange}/>
           )
         }
 

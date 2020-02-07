@@ -34,7 +34,7 @@ class Signin extends React.Component {
          .then(data => {
              if(data.message === 'Success')
              {
-                this.props.onLoadProfile(data.payload);
+                this.props.onLoadProfile(data.data);
                 this.props.onRouteChange('home')
              }
          })

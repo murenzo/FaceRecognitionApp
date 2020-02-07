@@ -37,7 +37,7 @@ class Register extends React.Component {
         })
          .then(response => response.json())
          .then(data => {
-             if(data)
+             if(data.message === 'Success')
              {
                 this.props.onRouteChange('signin');
              }

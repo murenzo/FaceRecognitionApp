@@ -90,7 +90,6 @@ class App extends Component {
         body: JSON.stringify({id: this.state.userProfile.id})
         })
        .then(response => response.json())
-        //  .then(console.log)
        .then(data => this.setState(Object.assign(this.state.userProfile, {entries: data})));
       }
       this.displayFaceBox(this.calculateFaceLocation(response));
